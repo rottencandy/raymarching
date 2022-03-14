@@ -5,13 +5,13 @@
   "author": "Mohammed Saud <md.saud020@gmail.com>",
   "license": "MIT",
   "scripts": {
-    "prebuild": "mkdir -p app && cp assets/* app",
+    "prebuild": "mkdir -p app && cp static/* app",
     "build": "node scripts/build.js",
-    "predev": "mkdir -p app && cp assets/* app",
+    "predev": "mkdir -p app && cp static/* app",
     "dev": "node scripts/dev.js",
     "bundle": "./bundle.sh"
   },
   "devDependencies": {
-    "esbuild": "^0.14.21"
+    "esbuild": "^0.14.26"
   }
 }

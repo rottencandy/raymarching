@@ -102,7 +102,7 @@ esbuild-windows-arm64@0.14.26:
   resolved "https://registry.yarnpkg.com/esbuild-windows-arm64/-/esbuild-windows-arm64-0.14.26.tgz#3bff0b46a884ff8de3f6f5a82b171b08012b78e0"
   integrity sha512-+l0DB0VV4LiSoDfNsGviK/2M88IR+/fOUfQoQx08RPu7OZ7gv9BqhRLZCSCT4qHT351OTH1nPv7avRXX6JRQcg==
 
-esbuild@^0.14.21:
+esbuild@^0.14.26:
   version "0.14.26"
   resolved "https://registry.yarnpkg.com/esbuild/-/esbuild-0.14.26.tgz#c83493ef55163d976241cc8ed077baf991f21201"
   integrity sha512-v0zIYlFB9NZ82/hFljhvpA7f8rob66r68ymB7juMz6TYAAMYjKGoW+hrMfRRvic5MAOI2wE/SuykFvsELLa6eA==
