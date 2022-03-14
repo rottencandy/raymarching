@@ -1,0 +1,17 @@
+{
+  "name": "js13k2021",
+  "version": "0.0.1",
+  "main": "index.js",
+  "author": "Mohammed Saud <md.saud020@gmail.com>",
+  "license": "MIT",
+  "scripts": {
+    "prebuild": "mkdir -p app && cp assets/* app",
+    "build": "node scripts/build.js",
+    "predev": "mkdir -p app && cp assets/* app",
+    "dev": "node scripts/dev.js",
+    "bundle": "./bundle.sh"
+  },
+  "devDependencies": {
+    "esbuild": "^0.14.21"
+  }
+}
