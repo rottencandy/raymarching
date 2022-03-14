@@ -1,11 +1,6 @@
-import { createGLContext } from './engine/webgl2';
-import { getById } from './globals';
+import { Camera } from './camera';
+import { CTX } from './setup';
 import { Cube } from './vertices';
-import { FPSCamera } from './camera';
-
-const ctx = createGLContext(getById('c'));
-ctx.resize_();
-onresize = ctx.resize_;
 
 /**
 * Calculates transformed vertices and provides
@@ -91,12 +86,12 @@ const fragmentStatic = `#version 300 es
         outColor = vec4(uColor, 1.);
     }`;
 
-const shader = ctx.shader_(
+const shader = CTX.shader_(
     vertexNormalFrag,
     fragmentPhong
 ).use_();
 
-const { vao_, draw_ } = ctx.createMesh_(
+const { vao_, draw_ } = CTX.createMesh_(
     Cube(10),
     [
         // aPos
@@ -106,27 +101,23 @@ const { vao_, draw_ } = ctx.createMesh_(
     ]
 );
 
-const lightSh = ctx.shader_(
+const lightSh = CTX.shader_(
     vertexPos,
     fragmentStatic
 ).use_();
 
-const { vao_: lightVao, draw_: drawLight } = ctx.createMesh_(
+const { vao_: lightVao, draw_: drawLight } = CTX.createMesh_(
     Cube(3),
     [
         [0, 3, 24],
     ]
 );
 
-const cam = FPSCamera();
+export const update = (_dt: number, _cam: Camera) => {};
 
-export const update = (dt: number) => {
-    cam.update_(dt);
-};
-
-export const render = () => {
-    ctx.clear_();
-    const mat = cam.mat_();
+export const render = (_dt: number, cam: Camera) => {
+    CTX.clear_();
+    const mat = cam.mat_;
 
     vao_.bind_();
     shader.use_();

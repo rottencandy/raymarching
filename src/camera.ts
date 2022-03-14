@@ -1,8 +1,16 @@
+import { mat4, vec3 } from 'gl-matrix';
 import Camera from './engine/cam';
 import { Keys } from './engine/input';
 import { radians } from './globals';
 
-export const FPSCamera = (speed = .01) => {
+export type Camera = {
+    update_: (dt: number) => void;
+    recalculate_: () => void;
+    mat_: mat4;
+    eye_: vec3;
+};
+
+export const FPSCamera = (speed = .01): Camera => {
     const cam = Camera(radians(45), 1, 500, 400 / 300)
         .moveTo_(0, 0, 20);
 
@@ -21,7 +29,8 @@ export const FPSCamera = (speed = .01) => {
                 Keys.ptrX_ = Keys.ptrY_ = 0;
             }
         },
-        mat_: () => cam.recalculate_().matrix_,
+        recalculate_: cam.recalculate_,
+        mat_: cam.matrix_,
         eye_: cam.eye_,
     };
 };
