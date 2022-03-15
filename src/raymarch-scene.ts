@@ -25,9 +25,13 @@ const { vao_, draw_ } = CTX.createMesh_(
 
 export const update = (_dt: number, _cam: Camera) => {};
 
-export const render = (_dt: number, _cam: Camera) => {
+let time = 0;
+export const render = (_dt: number, cam: Camera) => {
     CTX.clear_();
     vao_.bind_();
     shader.use_();
+    shader.uniform_`uCamPos`.u3f_(cam.eye_[0], cam.eye_[1], cam.eye_[2]);
+    shader.uniform_`uLookDir`.u3f_(cam.lookDir_[0], cam.lookDir_[1], cam.lookDir_[2]);
+    shader.uniform_`uTime`.u1f_(time += 1e-3);
     draw_();
 };

@@ -1,6 +1,7 @@
 #version 300 es
 precision lowp float;
 
+in vec3 vRO;
 in vec3 vRD;
 
 out vec4 outColor;
@@ -9,8 +10,9 @@ out vec4 outColor;
 #define MAX_DIST 100.
 #define SURF_DIST .01
 
-const vec4 SpherePos = vec4(0, 1, 10, 1);
-const vec3 LightPos = vec3(2, 5, 0);
+// w is size of sphere
+const vec4 SpherePos = vec4(0., 1., 10., 1.);
+const vec3 LightPos = vec3(2., 5., 0.);
 
 float SphereSDF(vec3 p, vec4 pos) {
     return length(p - pos.xyz) - pos.w;
@@ -58,10 +60,9 @@ float GetLight(vec3 p) {
 
 
 void main() {
-    vec3 ro = vec3(0., 2., 0.);
-    float d = RayMarch(ro, vRD);
+    float d = RayMarch(vRO, vRD);
 
-    vec3 p = ro + vRD * d;
+    vec3 p = vRO + vRD * d;
 
     float dif = GetLight(p);
     vec3 col = vec3(dif);

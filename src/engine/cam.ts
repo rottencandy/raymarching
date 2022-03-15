@@ -23,10 +23,11 @@ type CamState = {
      * recalculate transform matrix
      */
     recalculate_: () => CamState;
+    eye_: vec3;
+    lookDir_: vec3;
     /**
      * view-projection matrix
      */
-    eye_: vec3;
     matrix_: mat4;
     viewMatrix_: mat4;
     projectionMatrix_: mat4;
@@ -42,9 +43,9 @@ const Camera = (fov: number, zNear: number, zFar: number, aspect: number): CamSt
 
     const pos = vec3.create();
     const up = vec3.fromValues(0, 1, 0);
-    const front = vec3.fromValues(0, 0, -1);
-    // make cam initially point to z=-1
-    let yaw = -PI / 2,
+    const front = vec3.fromValues(0, 0, 1);
+    // make cam initially point to z=1
+    let yaw = PI / 2,
         pitch = 0;
 
     // temporary cached variables
@@ -102,6 +103,7 @@ const Camera = (fov: number, zNear: number, zFar: number, aspect: number): CamSt
         viewMatrix_: viewMat,
         projectionMatrix_: projectionMat,
         eye_: pos,
+        lookDir_: front,
     };
 
     return thisObj;

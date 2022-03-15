@@ -8,11 +8,12 @@ export type Camera = {
     recalculate_: () => void;
     mat_: mat4;
     eye_: vec3;
+    lookDir_: vec3;
 };
 
 export const FPSCamera = (speed = .01): Camera => {
     const cam = Camera(radians(45), 1, 500, 400 / 300)
-        .moveTo_(0, 0, 20);
+        .moveTo_(0, 2, 0);
 
     return {
         update_: (dt: number) => {
@@ -32,5 +33,6 @@ export const FPSCamera = (speed = .01): Camera => {
         recalculate_: cam.recalculate_,
         mat_: cam.matrix_,
         eye_: cam.eye_,
+        lookDir_: cam.lookDir_,
     };
 };
