@@ -2,30 +2,12 @@ import { Camera } from './camera';
 import { F32 } from './globals';
 import { CTX } from './setup';
 
-const frag = `#version 300 es
-precision lowp float;
-in vec2 vTex;
-uniform sampler2D uTex;
-out vec4 outColor;
+import frag from './shaders/raymarch.frag';
+import vert from './shaders/raymarch.vert';
 
-void main() {
-    outColor = texture(uTex, vTex);
-}
-`;
-
-const shader = CTX.shader_(
-    `#version 300 es
-    precision lowp float;
-    layout(location=0)in vec2 aPos;
-    layout(location=1)in vec2 aTex;
-    out vec2 vTex;
-
-    void main() {
-        gl_Position = vec4(aPos, 0., 1.);
-        vTex = aTex;
-    }`,
-    frag,
-).use_();
+const shader = CTX.shader_( vert, frag).use_();
+// TODO get aspect from setup
+shader.uniform_`aspect`.u1f_(400 / 300);
 
 const planeCoords = F32([
     -1,  1,

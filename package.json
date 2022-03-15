@@ -13,7 +13,7 @@
     "bundle": "./bundle.sh"
   },
   "devDependencies": {
-    "esbuild": "^0.14.26",
+    "esbuild": "^0.14.27",
     "esbuild-plugin-glsl": "^1.0.5"
   },
   "dependencies": {
