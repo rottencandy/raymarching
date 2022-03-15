@@ -4,8 +4,7 @@ precision lowp float;
 layout(location=0)in vec2 aPos;
 
 uniform float aspect, uTime;
-uniform vec3 uLookDir;
-uniform vec3 uCamPos;
+uniform vec3 uLookDir, uCamPos;
 
 out vec3 vRO;
 out vec3 vRD;
@@ -26,6 +25,7 @@ void main() {
     vec3 rayRight = normalize(cross(rayFront, UP));
     vec3 rayUp = cross(rayRight, rayFront);
 
+    // TODO: can all this be moved to CPU?
     vec3 rayDir = rayFront + rayRight * offsets.x + rayUp * offsets.y;
 
     vRD = normalize(rayDir);

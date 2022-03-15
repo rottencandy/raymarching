@@ -18,10 +18,45 @@ float SphereSDF(vec3 p, vec4 pos) {
     return length(p - pos.xyz) - pos.w;
 }
 
+float AAPlaneSDF(vec3 p, float height) {
+    return p.y - height;
+}
+
+float CapsuleSDF(vec3 p, vec3 a, vec3 b, float r) {
+    vec3 ab = b - a;
+    vec3 ap = p - a;
+    float t = dot(ab, ap) / dot(ab, ab);
+    t = clamp(t, 0., 1.);
+
+    vec3 c = a + t * ab;
+    return length(p - c) - r;
+}
+
+float TorusSDF(vec3 p, vec3 pos, vec2 r) {
+    vec3 position = p - pos;
+    float x = length(position.xz) - r.x;
+    return length(vec2(x, position.y)) - r.y;
+}
+
+float CubeSDF(vec3 p, vec3 pos, vec3 s) {
+    return length(max(abs(p - pos) - s, 0.));
+}
+
+float sdEllipsoid( vec3 p, vec3 pos, vec3 r ) {
+    vec3 po = p - pos;
+    float k0 = length(po / r);
+    float k1 = length(po / (r * r));
+    return k0 * (k0 - 1.0) / k1;
+}
+
 float GetDist(vec3 p) {
     float sphere = SphereSDF(p, SpherePos);
-    float planeDist = p.y;
-    float d = min(sphere, planeDist);
+    float plane = AAPlaneSDF(p, 0.);
+    float torus = TorusSDF(p, SpherePos.xyz, vec2(1.5, .1));
+    float box = CubeSDF(p, vec3(3., 1., 7.), vec3(1.));
+    float ellipse = sdEllipsoid(p, vec3(-3., 1., 7.), vec3(1.));
+
+    float d = min(min(min(min(box, ellipse), sphere), torus), plane);
     return d;
 }
 
@@ -53,7 +88,9 @@ float GetLight(vec3 p) {
     vec3 n = GetNormal(p);
 
     float dif = clamp(dot(n, l), 0., 1.);
-    float d = RayMarch(p + n*SURF_DIST*2., l);
+
+    // compute shadows
+    float d = RayMarch(p + n * SURF_DIST * 2., l);
     if (d < length(LightPos - p)) dif *= .1;
     return dif;
 }
