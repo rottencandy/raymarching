@@ -1,4 +1,7 @@
-require('esbuild').build({
+import { build } from 'esbuild';
+import { glsl } from 'esbuild-plugin-glsl';
+
+build({
     entryPoints: ['src/main.ts', 'src/app.css'],
     bundle: true,
     minify: true,
@@ -7,5 +10,6 @@ require('esbuild').build({
     format: 'iife',
     outdir: 'app',
     mangleProps: /_$/,
-    loader: { '.png': 'dataurl' }
+    loader: { '.png': 'dataurl' },
+    plugins: [glsl()]
 }).catch(() => process.exit(1))
