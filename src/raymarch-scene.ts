@@ -1,26 +1,18 @@
 import { Camera } from './camera';
 import { F32 } from './globals';
-import { CTX } from './setup';
+import { ASPECT, CTX } from './setup';
 
 import frag from './shaders/raymarch.frag';
 import vert from './shaders/raymarch.vert';
 
-const shader = CTX.shader_( vert, frag).use_();
-// TODO get aspect from setup
-shader.uniform_`aspect`.u1f_(400 / 300);
+const shader = CTX.shader_(vert, frag).use_();
+shader.uniform_`aspect`.u1f_(ASPECT);
 
 const planeCoords = F32([
     -1,  1,
     -1, -1,
      1, -1,
      1,  1,
-]);
-
-const planeTexCoords = F32([
-    0, 1,
-    0, 0,
-    1, 0,
-    1, 1,
 ]);
 
 const { vao_, draw_ } = CTX.createMesh_(
@@ -30,10 +22,6 @@ const { vao_, draw_ } = CTX.createMesh_(
     ],
     [[0, 2]]
 );
-
-// aTex
-CTX.buffer_().bind_().setData_(planeTexCoords);
-vao_.setPtr_(1, 2);
 
 export const update = (_dt: number, _cam: Camera) => {};
 

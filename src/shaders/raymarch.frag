@@ -1,10 +1,7 @@
 #version 300 es
 precision lowp float;
 
-in vec2 vTex;
-in vec2 vFragCoord;
-
-uniform sampler2D uTex;
+in vec3 vRD;
 
 out vec4 outColor;
 
@@ -12,16 +9,18 @@ out vec4 outColor;
 #define MAX_DIST 100.
 #define SURF_DIST .01
 
+const vec4 SpherePos = vec4(0, 1, 10, 1);
+const vec3 LightPos = vec3(2, 5, 0);
+
 float SphereSDF(vec3 p, vec4 pos) {
     return length(p - pos.xyz) - pos.w;
 }
 
 float GetDist(vec3 p) {
-    float sphere = SphereSDF(p, vec4(0., 1., 6., 1.));
+    float sphere = SphereSDF(p, SpherePos);
     float planeDist = p.y;
-    // float d = min(sphere, planeDist);
-    // return d;
-    return sphere;
+    float d = min(sphere, planeDist);
+    return d;
 }
 
 float RayMarch(vec3 ro, vec3 rd) {
@@ -48,29 +47,23 @@ vec3 GetNormal(vec3 p) {
 }
 
 float GetLight(vec3 p) {
-    vec3 lightPos = vec3(0., 5., 6.);
-    vec3 l = normalize(lightPos - p);
+    vec3 l = normalize(LightPos - p);
     vec3 n = GetNormal(p);
 
     float dif = clamp(dot(n, l), 0., 1.);
     float d = RayMarch(p + n*SURF_DIST*2., l);
-    if (d < length(lightPos - p)) dif *= .1;
+    if (d < length(LightPos - p)) dif *= .1;
     return dif;
 }
 
 
 void main() {
-    outColor = texture(uTex, vTex);
+    vec3 ro = vec3(0., 2., 0.);
+    float d = RayMarch(ro, vRD);
 
-    vec3 ro = vec3(0., 1., 0.);
-    vec3 rd = normalize(vec3(vFragCoord, 1.));
-    float d = RayMarch(ro, rd);
+    vec3 p = ro + vRD * d;
 
-    vec3 col = vec3(0.);
-    if (d < MAX_DIST) {
-        vec3 p = ro + rd * d;
-        float dif = GetLight(p);
-        col = vec3(dif);
-        outColor.rgb = col;
-    }
+    float dif = GetLight(p);
+    vec3 col = vec3(dif);
+    outColor = vec4(col, 1.);
 }
