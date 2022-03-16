@@ -4,6 +4,8 @@ precision lowp float;
 in vec3 vRO;
 in vec3 vRD;
 
+uniform float iTime;
+
 out vec4 outColor;
 
 #define MAX_STEPS 100
@@ -14,8 +16,23 @@ out vec4 outColor;
 const vec4 SpherePos = vec4(0., 1., 10., 1.);
 const vec3 LightPos = vec3(2., 5., 0.);
 
-float SphereSDF(vec3 p, vec4 pos) {
-    return length(p - pos.xyz) - pos.w;
+mat2 Rot(float a) {
+    float s = sin(a);
+    float c = cos(a);
+    return mat2(c, -s, s, c);
+}
+
+float smin(float a, float b, float k) {
+    float h = clamp(.5 + .5 * (b - a) / k, 0., 1.);
+    return mix(b, a, h) - k * h * (1. - h);
+}
+
+float lerp(float a, float b, float f) {
+    return a + f * (b - a);
+}
+
+float SphereSDF(vec3 p, float r) {
+    return length(p) - r;
 }
 
 float AAPlaneSDF(vec3 p, float height) {
@@ -32,39 +49,40 @@ float CapsuleSDF(vec3 p, vec3 a, vec3 b, float r) {
     return length(p - c) - r;
 }
 
-float TorusSDF(vec3 p, vec3 pos, vec2 r) {
-    vec3 position = p - pos;
-    float x = length(position.xz) - r.x;
-    return length(vec2(x, position.y)) - r.y;
+float TorusSDF(vec3 p, vec2 r) {
+    float x = length(p.xz) - r.x;
+    return length(vec2(x, p.y)) - r.y;
 }
 
-float CubeSDF(vec3 p, vec3 pos, vec3 s) {
-    return length(max(abs(p - pos) - s, 0.));
+float CubeSDF(vec3 p, vec3 s) {
+    return length(max(abs(p) - s, 0.));
 }
 
-float sdEllipsoid( vec3 p, vec3 pos, vec3 r ) {
-    vec3 po = p - pos;
-    float k0 = length(po / r);
-    float k1 = length(po / (r * r));
+float sdEllipsoid(vec3 p, vec3 r ) {
+    float k0 = length(p / r);
+    float k1 = length(p / (r * r));
     return k0 * (k0 - 1.0) / k1;
 }
 
 float GetDist(vec3 p) {
-    float sphere = SphereSDF(p, SpherePos);
-    float plane = AAPlaneSDF(p, 0.);
-    float torus = TorusSDF(p, SpherePos.xyz, vec2(1.5, .1));
-    float box = CubeSDF(p, vec3(3., 1., 7.), vec3(1.));
-    float ellipse = sdEllipsoid(p, vec3(-3., 1., 7.), vec3(1.));
+    float sphere = SphereSDF(p - SpherePos.xyz, SpherePos.w);
 
-    float d = min(min(min(min(box, ellipse), sphere), torus), plane);
+    float torus = TorusSDF(p - SpherePos.xyz, vec2(1.5, .1));
+
+    float box = CubeSDF(p - vec3(3., 1., 7.), vec3(1.));
+
+    float ellipse = sdEllipsoid(p - vec3(-3., 1., 7.), vec3(1.));
+
+    float plane = AAPlaneSDF(p, 0.);
+
+    float d = min(min(min(smin(sphere, torus, .9), box), ellipse), plane);
     return d;
 }
 
 float RayMarch(vec3 ro, vec3 rd) {
     float dO = 0.;
     for (int i = 0; i < MAX_STEPS; i++) {
-        vec3 p = ro + dO * rd;
-        float dS = GetDist(p);
+        float dS = GetDist(ro + rd * dO);
         dO += dS;
         if (dO > MAX_DIST || dS < SURF_DIST) break;
     }
@@ -103,5 +121,9 @@ void main() {
 
     float dif = GetLight(p);
     vec3 col = vec3(dif);
+
+    // fog
+    //col *= exp(-.0005 * t * t * t);
+
     outColor = vec4(col, 1.);
 }
