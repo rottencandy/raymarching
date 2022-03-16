@@ -101,15 +101,33 @@ vec3 GetNormal(vec3 p) {
     return normalize(n);
 }
 
+float SoftShadow(vec3 ro, vec3 rd, float k) {
+    float res = 1.;
+    float ph = 1e20;
+    for(float t = .01; t < MAX_DIST; ) {
+        float h = GetDist(ro + rd * t);
+        if (h < .001)
+            return 0.;
+        // improved method
+        //float y = h * h / (2. * ph);
+        //float d = sqrt(h * h - y * y);
+        //res = min(res, k * h / max(0., t - y));
+        res = min(res, k * h / t);
+        t += h;
+    }
+    return res;
+}
+
 float GetLight(vec3 p) {
-    vec3 l = normalize(LightPos - p);
+    vec3 lightDir = normalize(LightPos - p);
     vec3 n = GetNormal(p);
 
-    float dif = clamp(dot(n, l), 0., 1.);
+    float dif = clamp(dot(n, lightDir), 0., 1.);
 
-    // compute shadows
-    float d = RayMarch(p + n * SURF_DIST * 2., l);
-    if (d < length(LightPos - p)) dif *= .1;
+    // hard shadows
+    //float d = RayMarch(p + n * SURF_DIST * 2., lightDir);
+    //if (d < length(LightPos - p)) dif *= .2;
+    dif *= SoftShadow(p, lightDir, 32.);
     return dif;
 }
 
