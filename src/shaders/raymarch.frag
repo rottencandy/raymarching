@@ -187,6 +187,11 @@ float BlinnPhongLight(vec3 p, vec3 rd) {
     return light;
 }
 
+vec3 fog(vec3 col, float t) {
+    vec3 ext = exp2(-t * 0.005 * vec3(1, 1.5, 2));
+    return col * ext + (1.0 - ext) * vec3(0.55, 0.55, 0.58); // 0.55
+}
+
 
 void main() {
     float d = RayMarch(vRO, vRD);
@@ -196,8 +201,7 @@ void main() {
     float dif = BlinnPhongLight(p, vRD);
     vec3 col = vec3(dif);
 
-    // fog
-    //col *= exp(-.0005 * t * t * t);
+    col = fog(col, d);
 
     // gamma correction
     col = pow(col, vec3(1.0 / 2.2));
