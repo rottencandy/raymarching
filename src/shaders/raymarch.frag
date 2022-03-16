@@ -39,6 +39,10 @@ float AAPlaneSDF(vec3 p, float height) {
     return p.y - height;
 }
 
+float RotPlaneSDF(vec3 p, vec3 norm) {
+    return dot(p, normalize(norm));
+}
+
 float CapsuleSDF(vec3 p, vec3 a, vec3 b, float r) {
     vec3 ab = b - a;
     vec3 ap = p - a;
@@ -64,18 +68,24 @@ float sdEllipsoid(vec3 p, vec3 r ) {
     return k0 * (k0 - 1.0) / k1;
 }
 
+float Ground(vec3 p) {
+    return AAPlaneSDF(p, 0.); // - sin(p.x / 4.) - cos(p.z / 4.);
+}
+
 float GetDist(vec3 p) {
     float sphere = SphereSDF(p - SpherePos.xyz, SpherePos.w);
 
     float torus = TorusSDF(p - SpherePos.xyz, vec2(1.5, .1));
 
-    float box = CubeSDF(p - vec3(3., 1., 7.), vec3(1.));
+    //float box = CubeSDF(p - vec3(3., 1., 7.), vec3(1.));
 
-    float ellipse = sdEllipsoid(p - vec3(-3., 1., 7.), vec3(1.));
+    //float ellipse = sdEllipsoid(p - vec3(-3., 1., 7.), vec3(1.));
 
-    float plane = AAPlaneSDF(p, 0.);
+    //float plane = AAPlaneSDF(p, 0.);
 
-    float d = min(min(min(smin(sphere, torus, .9), box), ellipse), plane);
+    float plane = Ground(p);
+
+    float d = min(smin(sphere, torus, .9), plane);
     return d;
 }
 
@@ -84,7 +94,7 @@ float RayMarch(vec3 ro, vec3 rd) {
     for (int i = 0; i < MAX_STEPS; i++) {
         float dS = GetDist(ro + rd * dO);
         dO += dS;
-        if (dO > MAX_DIST || dS < SURF_DIST) break;
+        if (dO > MAX_DIST || abs(dS) < SURF_DIST) break;
     }
     return dO;
 }
