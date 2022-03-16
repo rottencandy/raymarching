@@ -12,6 +12,9 @@ out vec4 outColor;
 #define MAX_DIST 100.
 #define SURF_DIST .01
 
+#define BLINN_PHONG
+//#define IMPROVED_SHADOW
+
 // w is size of sphere
 const vec4 SpherePos = vec4(0., 1., 10., 1.);
 const vec3 LightPos = vec3(2., 5., 0.);
@@ -118,21 +121,23 @@ float SoftShadow(vec3 ro, vec3 rd, float k) {
         float h = GetDist(ro + rd * t);
         if (h < .001)
             return 0.;
-        // improved method
-        //float y = h * h / (2. * ph);
-        //float d = sqrt(h * h - y * y);
-        //res = min(res, k * h / max(0., t - y));
+#ifdef IMPROVED_SHADOW
+        float y = h * h / (2. * ph);
+        float d = sqrt(h * h - y * y);
+        res = min(res, k * h / max(0., t - y));
+#else
         res = min(res, k * h / t);
+#endif
         t += h;
     }
     return res;
 }
 
-float GetLight(vec3 p) {
+float DiffuseLight(vec3 p) {
     vec3 lightDir = normalize(LightPos - p);
     vec3 n = GetNormal(p);
 
-    float dif = clamp(dot(n, lightDir), 0., 1.);
+    float dif = max(dot(n, lightDir), 0.);
 
     // hard shadows
     //float d = RayMarch(p + n * SURF_DIST * 2., lightDir);
@@ -141,17 +146,62 @@ float GetLight(vec3 p) {
     return dif;
 }
 
+float BlinnPhongLight(vec3 p, vec3 rd) {
+    // constants
+    float ambientStr = .01;
+    float diffStr = .3;
+    float spectacularStr = .4;
+    float shininess = 32.;
+    // variables
+    vec3 lightDir = normalize(LightPos - p);
+    vec3 norm = GetNormal(p);
+
+    // ambient
+    float ambient = ambientStr;
+
+    // diffuse
+    float diff = max(dot(norm, lightDir), 0.);
+    float diffuse = (diff * diffStr);
+
+    // spectacular
+
+#ifdef BLINN_PHONG
+    // blinn-phong
+    vec3 halfwayDir = normalize(lightDir - rd);
+    float spec = pow(max(dot(norm, halfwayDir), 0.), 16.);
+#else
+    // normal phong
+    vec3 reflectDir = reflect(-lightDir, norm);
+    float spec = pow(max(dot(rd, reflectDir), 0.), 8.);
+#endif
+
+    float spectacular = (spec * spectacularStr);
+
+    float light = ambient + diffuse + spectacular;
+
+    // hard shadows
+    //float d = RayMarch(p + norm * SURF_DIST * 2., lightDir);
+    //if (d < length(LightPos - p)) light *= .2;
+    light *= SoftShadow(p, lightDir, 32.);
+
+    return light;
+}
+
 
 void main() {
     float d = RayMarch(vRO, vRD);
 
     vec3 p = vRO + vRD * d;
 
-    float dif = GetLight(p);
+    float dif = BlinnPhongLight(p, vRD);
     vec3 col = vec3(dif);
 
     // fog
     //col *= exp(-.0005 * t * t * t);
 
+    // gamma correction
+    col = pow(col, vec3(1.0 / 2.2));
+
     outColor = vec4(col, 1.);
+    //outColor = texture(uTex, vUV);
 }
