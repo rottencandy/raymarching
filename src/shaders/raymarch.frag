@@ -6,19 +6,26 @@ in vec3 vRD;
 in vec2 vUV;
 
 uniform float iTime;
+uniform vec3 uSpherePos;
+uniform sampler2D uFloorTex;
 
 out vec4 outColor;
 
-#define MAX_STEPS 100
-#define MAX_DIST 100.
+#define MAX_STEPS 200
+#define MAX_DIST 200.
 #define SURF_DIST .01
 
 #define BLINN_PHONG
 //#define IMPROVED_SHADOW
 
+#define SKY_ID    0
+#define SPHERE_ID 1
+#define PLANE_ID  2
+#define CUBE_ID 1
+
 // w is size of sphere
-const vec4 SpherePos = vec4(0., 1., 10., 1.);
-const vec3 LightPos = vec3(2., 5., 0.);
+const vec3 SpotLightPos = vec3(2., 5., 0.);
+const vec3 SunlightDir = normalize(vec3(0., 1., 4.5));
 
 mat2 Rot(float a) {
     float s = sin(a);
@@ -33,6 +40,35 @@ float smin(float a, float b, float k) {
 
 float lerp(float a, float b, float f) {
     return a + f * (b - a);
+}
+
+#define NUM_OCTAVES 3
+float rand(vec2 n){
+	return fract(sin(dot(n, vec2(12.9898, 4.1414))) * 43758.5453);
+}
+float noise(vec2 p){
+	vec2 ip = floor(p);
+	vec2 u = fract(p);
+	u = u*u*(3.0-2.0*u);
+	float res = mix(
+		mix(rand(ip),rand(ip+vec2(1.0,0.0)),u.x),
+		mix(rand(ip+vec2(0.0,1.0)),rand(ip+vec2(1.0,1.0)),u.x),u.y);
+	return res*res;
+}
+
+// https://github.com/yiwenl/glsl-fbm
+float fbm(vec2 x) {
+	float v = 0.0;
+	float a = 0.5;
+	vec2 shift = vec2(100);
+	// Rotate to reduce axial bias
+    mat2 rot = mat2(cos(0.5), sin(0.5), -sin(0.5), cos(0.50));
+	for (int i = 0; i < NUM_OCTAVES; ++i) {
+		v += a * noise(x);
+		x = rot * x * 2.0 + shift;
+		a *= 0.5;
+	}
+	return v;
 }
 
 float SphereSDF(vec3 p, float r) {
@@ -62,54 +98,69 @@ float TorusSDF(vec3 p, vec2 r) {
     return length(vec2(x, p.y)) - r.y;
 }
 
-float CubeSDF(vec3 p, vec3 s) {
-    return length(max(abs(p) - s, 0.));
+float CubeSDF(vec3 p, vec3 b) {
+  vec3 q = abs(p) - b;
+  return length(max(q,0.0)) + min(max(q.x,max(q.y,q.z)),0.0);
 }
 
-float sdEllipsoid(vec3 p, vec3 r ) {
-    float k0 = length(p / r);
-    float k1 = length(p / (r * r));
-    return k0 * (k0 - 1.0) / k1;
+float OpOnion(in float sdf, in float thickness) {
+    return abs(sdf)-thickness;
 }
 
 float Ground(vec3 p) {
-    return AAPlaneSDF(p, 0.); // - sin(p.x / 4.) - cos(p.z / 4.);
+    return AAPlaneSDF(p, 0.);
 }
 
-float GetDist(vec3 p) {
-    float sphere = SphereSDF(p - SpherePos.xyz, SpherePos.w);
+float Room(vec3 p) {
+    float room = OpOnion(CubeSDF(p, vec3(64)), .5);
+    float hole = CubeSDF(p - vec3(0, 0, 63), vec3(4., 10., 2.));
+    return max(-hole, room);
+}
 
-    float torus = TorusSDF(p - SpherePos.xyz, vec2(1.5, .1));
-
-    //float box = CubeSDF(p - vec3(3., 1., 7.), vec3(1.));
-
-    //float ellipse = sdEllipsoid(p - vec3(-3., 1., 7.), vec3(1.));
-
-    //float plane = AAPlaneSDF(p, 0.);
+vec2 GetDist(vec3 p) {
+    //float sphere = SphereSDF(p - uSpherePos, 1.);
+    float room = Room(p);
 
     float plane = Ground(p);
 
-    float d = min(smin(sphere, torus, .9), plane);
-    return d;
+    float d = 0.;
+    int id = 0;
+    if (room < plane) {
+        d = room;
+        id = SPHERE_ID;
+    } else {
+        d = plane;
+        id = PLANE_ID;
+    }
+    return vec2(d, id);
 }
 
-float RayMarch(vec3 ro, vec3 rd) {
+vec2 RayMarch(vec3 ro, vec3 rd) {
     float dO = 0.;
+    int id = 0;
     for (int i = 0; i < MAX_STEPS; i++) {
-        float dS = GetDist(ro + rd * dO);
+        vec2 dist = GetDist(ro + rd * dO);
+        float dS = dist.x;
         dO += dS;
-        if (dO > MAX_DIST || abs(dS) < SURF_DIST) break;
+        if (dO > MAX_DIST) {
+            id = SKY_ID;
+            dO = MAX_DIST;
+            break;
+        }
+        if (abs(dS) < SURF_DIST) {
+            return vec2(dO, dist.y);
+        }
     }
-    return dO;
+    return vec2(dO, id);
 }
 
 vec3 GetNormal(vec3 p) {
     vec2 e = vec2(.01, .0);
 
-    vec3 n = GetDist(p) - vec3(
-        GetDist(p - e.xyy),
-        GetDist(p - e.yxy),
-        GetDist(p - e.yyx)
+    vec3 n = GetDist(p).x - vec3(
+        GetDist(p - e.xyy).x,
+        GetDist(p - e.yxy).x,
+        GetDist(p - e.yyx).x
     );
 
     return normalize(n);
@@ -119,9 +170,9 @@ float SoftShadow(vec3 ro, vec3 rd, float k) {
     float res = 1.;
     float ph = 1e20;
     for(float t = .01; t < MAX_DIST; ) {
-        float h = GetDist(ro + rd * t);
+        float h = GetDist(ro + rd * t).x;
         if (h < .001)
-            return 0.;
+            return .1;
 #ifdef IMPROVED_SHADOW
         float y = h * h / (2. * ph);
         float d = sqrt(h * h - y * y);
@@ -134,28 +185,19 @@ float SoftShadow(vec3 ro, vec3 rd, float k) {
     return res;
 }
 
-float DiffuseLight(vec3 p) {
-    vec3 lightDir = normalize(LightPos - p);
+float DiffuseLight(vec3 p, vec3 lightDir) {
     vec3 n = GetNormal(p);
 
     float dif = max(dot(n, lightDir), 0.);
 
-    // hard shadows
-    //float d = RayMarch(p + n * SURF_DIST * 2., lightDir);
-    //if (d < length(LightPos - p)) dif *= .2;
-    dif *= SoftShadow(p, lightDir, 32.);
     return dif;
 }
 
-float BlinnPhongLight(vec3 p, vec3 rd) {
+float BlinnPhongLight(vec3 norm, vec3 rd, vec3 lightDir) {
     // constants
-    float ambientStr = .01;
-    float diffStr = .3;
-    float spectacularStr = .4;
-    float shininess = 32.;
-    // variables
-    vec3 lightDir = normalize(LightPos - p);
-    vec3 norm = GetNormal(p);
+    float ambientStr = .1;
+    float diffStr = .4;
+    float spectacularStr = .6;
 
     // ambient
     float ambient = ambientStr;
@@ -169,44 +211,75 @@ float BlinnPhongLight(vec3 p, vec3 rd) {
 #ifdef BLINN_PHONG
     // blinn-phong
     vec3 halfwayDir = normalize(lightDir - rd);
-    float spec = pow(max(dot(norm, halfwayDir), 0.), 16.);
+    float spec = pow(max(dot(norm, halfwayDir), 0.), 32.);
 #else
     // normal phong
     vec3 reflectDir = reflect(-lightDir, norm);
-    float spec = pow(max(dot(rd, reflectDir), 0.), 8.);
+    float spec = pow(max(dot(rd, reflectDir), 0.), 16.);
 #endif
 
     float spectacular = (spec * spectacularStr);
 
     float light = ambient + diffuse + spectacular;
 
-    // hard shadows
-    //float d = RayMarch(p + norm * SURF_DIST * 2., lightDir);
-    //if (d < length(LightPos - p)) light *= .2;
-    light *= SoftShadow(p, lightDir, 32.);
 
     return light;
 }
 
 vec3 fog(vec3 col, float t) {
-    vec3 ext = exp2(-t * 0.005 * vec3(1, 1.5, 2));
-    return col * ext + (1.0 - ext) * vec3(0.55, 0.55, 0.58); // 0.55
+    vec3 ext = exp2(-t * 0.005 * vec3(1.4, 1.5, 1.2));
+    return col * ext + (1.0 - ext) * .05; // 0.55
+}
+
+vec3 SkyColor() {
+    vec2 p = vRD.xz - vec2(.0, .5 + vRD.y);
+    float sun = .08 / length(vRD.xz - vec2(.0, .5 + vRD.y));
+    return mix(vec3(.3, .5, .7), vec3(.9, .9, .8), sun);
+}
+
+vec3 GroundColor(vec3 p) {
+    return texture(uFloorTex, p.xz / 64.).xyz;
+}
+
+vec3 Material(float id, vec3 p, float light) {
+    switch(int(id)) {
+        case SKY_ID:
+            return SkyColor();
+        case PLANE_ID:
+            return GroundColor(p) * light;
+        case SPHERE_ID:
+            return vec3(.7, .7, .5) * light;
+        default:
+            return vec3(light);
+    }
 }
 
 
 void main() {
-    float d = RayMarch(vRO, vRD);
+    vec2 ray = RayMarch(vRO, vRD);
+    float dist = ray.x;
+    float id = ray.y;
 
-    vec3 p = vRO + vRD * d;
+    vec3 p = vRO + vRD * dist;
 
-    float dif = BlinnPhongLight(p, vRD);
-    vec3 col = vec3(dif);
+    vec3 spotLightDir = normalize(SpotLightPos - p);
 
-    col = fog(col, d);
+    vec3 norm = GetNormal(p);
+    float sunlight = BlinnPhongLight(norm, vRD, SunlightDir);
+    float spotlight = BlinnPhongLight(norm, vRD, spotLightDir);
+    float light = max(sunlight, spotlight);
+
+    // hard shadows
+    float sdist = RayMarch(p + norm * SURF_DIST * 2., SunlightDir).x;
+    if (sdist < MAX_DIST) light *= .2;
+    //light *= SoftShadow(p, SunlightDir, 32.);
+
+    vec3 col = Material(id, p, light);
+
+    //col = fog(col, dist);
 
     // gamma correction
     col = pow(col, vec3(1.0 / 2.2));
 
     outColor = vec4(col, 1.);
-    //outColor = texture(uTex, vUV);
 }
