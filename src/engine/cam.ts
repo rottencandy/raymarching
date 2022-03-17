@@ -56,10 +56,17 @@ const Camera = (fov: number, zNear: number, zFar: number, aspect: number): CamSt
     const t_target = vec3.create();
 
     const thisObj: CamState = {
-        move_(x, _y, z) {
-            // TODO: handle y movement
+        move_(x, y, z) {
             if (z) {
                 vec3.scale(t_move, front, z);
+                // reset y dir, so we always move paralell to the ground
+                // regardless of face direction
+                // TODO: turn this into a configurable option
+                t_move[1] = 0;
+                vec3.add(pos, pos, t_move);
+            }
+            if (y) {
+                vec3.scale(t_move, up, y);
                 vec3.add(pos, pos, t_move);
             }
             if (x) {

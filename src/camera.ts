@@ -13,7 +13,7 @@ export type Camera = {
 
 export const FPSCamera = (speed = .01): Camera => {
     const cam = Camera(radians(45), 1, 500, 400 / 300)
-        .moveTo_(0, 2, 0);
+        .moveTo_(0, 5, 0);
 
     return {
         update_: (dt: number) => {
