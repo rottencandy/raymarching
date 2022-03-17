@@ -6,6 +6,8 @@ import { ASPECT, CTX, WORLD } from './setup';
 import frag from './shaders/raymarch.frag';
 import vert from './shaders/raymarch.vert';
 
+import img from './floor.png';
+
 const shader = CTX.shader_(vert, frag).use_();
 shader.uniform_`aspect`.u1f_(ASPECT);
 
@@ -23,6 +25,10 @@ const { vao_, draw_ } = CTX.createMesh_(
     ],
     [[0, 2]]
 );
+
+CTX.texture_()
+    .setImage_(img)
+    .setUnit_(shader.uniform_`uFloorTex`.loc, 0);
 
 // ground
 const ground = new Body({ mass: 0 });

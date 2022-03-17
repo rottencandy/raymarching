@@ -3,6 +3,7 @@ precision lowp float;
 
 in vec3 vRO;
 in vec3 vRD;
+in vec2 vUV;
 
 uniform float iTime;
 
