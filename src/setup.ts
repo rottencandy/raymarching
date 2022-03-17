@@ -1,3 +1,4 @@
+import { World } from 'cannon-es';
 import { createGLContext } from './engine/webgl2';
 import { getById } from './globals';
 
@@ -8,3 +9,6 @@ ctx.resize_();
 onresize = ctx.resize_;
 
 export const CTX = ctx;
+
+export const WORLD = new World();
+WORLD.gravity.set(0, -9.82, 0); // m/s^2
