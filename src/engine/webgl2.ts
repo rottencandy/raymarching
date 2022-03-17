@@ -24,6 +24,7 @@ import {
     GL_RGBA,
     GL_SRC_ALPHA,
     GL_STATIC_DRAW,
+    GL_TEXTURE0,
     GL_TEXTURE_2D,
     GL_TEXTURE_MAG_FILTER,
     GL_TEXTURE_MIN_FILTER,
@@ -144,6 +145,10 @@ type TextureState = {
     setFilter_: (type?: number) => TextureState;
     setWrap_: (type?: number) => TextureState;
     setTexData_: (data: ArrayBufferView, level?: number, internalFormat?: number, width?: number, height?: number, border?: number, format?: number, type?: number, alignment?: number) => TextureState;
+    /**
+     * Only needed when using multiple textures in a single program
+     */
+    setUnit_: (loc: WebGLUniformLocation, unit: number) => TextureState;
 };
 
 
@@ -180,6 +185,12 @@ const createTextureFns = (gl: WebGL2RenderingContext) => (target = GL_TEXTURE_2D
             gl.texImage2D(target, level, internalFormat, width, height, border, format, type, data);
             return thisObj;
         },
+        setUnit_(loc: WebGLUniformLocation, unit: number) {
+            gl.uniform1i(loc, unit);
+            gl.activeTexture(GL_TEXTURE0 + unit);
+            thisObj.bind_();
+            return thisObj;
+        }
     };
     // set a temporary blue texture
     thisObj.setTexData_(new Uint8Array([0, 0, 255, 255]), 0, GL_RGBA, 1, 1, 0, GL_RGBA, GL_UNSIGNED_BYTE);
@@ -273,6 +284,7 @@ export const createGLContext = (canvas: HTMLCanvasElement, width = 400, height =
             const ratio = deviceScaleRatio(width, height);
             canvas.style.width = width * ratio + 'px';
             canvas.style.height = height * ratio + 'px';
+            gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
             // display note if device is in potrait
             getById('d').style.display = innerWidth < innerHeight ? 'block' : 'none';
         },
