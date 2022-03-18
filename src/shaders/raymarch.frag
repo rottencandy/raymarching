@@ -27,6 +27,8 @@ out vec4 outColor;
 const vec3 SpotLightPos = vec3(2., 5., 0.);
 const vec3 SunlightDir = normalize(vec3(0., 1., 4.5));
 
+// Utils {{{
+
 mat2 Rot(float a) {
     float s = sin(a);
     float c = cos(a);
@@ -38,22 +40,20 @@ float smin(float a, float b, float k) {
     return mix(b, a, h) - k * h * (1. - h);
 }
 
-float lerp(float a, float b, float f) {
-    return a + f * (b - a);
-}
+float lerp(float a, float b, float f) { return a + f * (b - a); }
 
 #define NUM_OCTAVES 3
 float rand(vec2 n){
 	return fract(sin(dot(n, vec2(12.9898, 4.1414))) * 43758.5453);
 }
 float noise(vec2 p){
-	vec2 ip = floor(p);
-	vec2 u = fract(p);
-	u = u*u*(3.0-2.0*u);
-	float res = mix(
-		mix(rand(ip),rand(ip+vec2(1.0,0.0)),u.x),
-		mix(rand(ip+vec2(0.0,1.0)),rand(ip+vec2(1.0,1.0)),u.x),u.y);
-	return res*res;
+    vec2 ip = floor(p);
+    vec2 u = fract(p);
+    u = u*u*(3.0-2.0*u);
+    float res = mix(
+        mix(rand(ip),rand(ip+vec2(1.0,0.0)),u.x),
+        mix(rand(ip+vec2(0.0,1.0)),rand(ip+vec2(1.0,1.0)),u.x),u.y);
+    return res*res;
 }
 
 // https://github.com/yiwenl/glsl-fbm
@@ -70,6 +70,10 @@ float fbm(vec2 x) {
 	}
 	return v;
 }
+
+// }}}
+
+// Primitives {{{
 
 float SphereSDF(vec3 p, float r) {
     return length(p) - r;
@@ -99,28 +103,39 @@ float TorusSDF(vec3 p, vec2 r) {
 }
 
 float CubeSDF(vec3 p, vec3 b) {
-  vec3 q = abs(p) - b;
-  return length(max(q,0.0)) + min(max(q.x,max(q.y,q.z)),0.0);
+    vec3 q = abs(p) - b;
+    return length(max(q,0.0)) + min(max(q.x,max(q.y,q.z)),0.0);
 }
 
-float OpOnion(in float sdf, in float thickness) {
-    return abs(sdf)-thickness;
-}
+// }}}
+
+// Operations {{{
+
+float OpOnion(in float sdf, in float thickness) { return abs(sdf)-thickness; }
+
+float OpUnion( float d1, float d2 ) { return min(d1,d2); }
+
+float OpSubtraction( float d1, float d2 ) { return max(-d1,d2); }
+
+float OpIntersection( float d1, float d2 ) { return max(d1,d2); }
+
+// }}}
+
+// Objects {{{
 
 float Ground(vec3 p) {
     return AAPlaneSDF(p, 0.);
 }
 
 float Room(vec3 p) {
-    float room = OpOnion(CubeSDF(p, vec3(64)), .5);
-    float hole = CubeSDF(p - vec3(0, 0, 63), vec3(4., 10., 2.));
-    return max(-hole, room);
+    float room = OpOnion(CubeSDF(p, vec3(64, 50, 64)), .5);
+    float hole = CubeSDF(p - vec3(0, 32, 63), vec3(20., 10., 2.));
+    return OpSubtraction(hole, room);
 }
 
 vec2 GetDist(vec3 p) {
-    //float sphere = SphereSDF(p - uSpherePos, 1.);
+    float sphere = SphereSDF(p - uSpherePos, 1.);
     float room = Room(p);
-
     float plane = Ground(p);
 
     float d = 0.;
@@ -132,8 +147,16 @@ vec2 GetDist(vec3 p) {
         d = plane;
         id = PLANE_ID;
     }
+    if (sphere < d) {
+        d = sphere;
+        id = SPHERE_ID;
+    }
     return vec2(d, id);
 }
+
+// }}}
+
+// Raymarching {{{
 
 vec2 RayMarch(vec3 ro, vec3 rd) {
     float dO = 0.;
@@ -226,6 +249,10 @@ float BlinnPhongLight(vec3 norm, vec3 rd, vec3 lightDir) {
     return light;
 }
 
+// }}}
+
+// Materials {{{
+
 vec3 fog(vec3 col, float t) {
     vec3 ext = exp2(-t * 0.005 * vec3(.2));
     return col * ext + (1.0 - ext) * .1; // 0.55
@@ -253,6 +280,8 @@ vec3 Material(float id, vec3 p, float light) {
             return vec3(light);
     }
 }
+
+// }}}
 
 
 void main() {
@@ -284,3 +313,4 @@ void main() {
 
     outColor = vec4(col, 1.);
 }
+// vim: fdm=marker:fdl=0:
