@@ -11,4 +11,4 @@ onresize = ctx.resize_;
 export const CTX = ctx;
 
 export const WORLD = new World();
-WORLD.gravity.set(0, -9.82, 0); // m/s^2
+WORLD.gravity.set(0, -50, 0); // m/s^2

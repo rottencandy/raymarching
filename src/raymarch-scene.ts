@@ -1,4 +1,4 @@
-import { Body, Plane, Sphere } from 'cannon-es';
+import { Body, ContactMaterial, Material, Plane, Sphere } from 'cannon-es';
 import { FPSCannonCamera } from './camera';
 import { PI } from './globals';
 import { ASPECT, CTX, WORLD } from './setup';
@@ -12,16 +12,18 @@ const shader = CTX.shader_(vert, frag).use_();
 const tex = CTX.texture_();
 
 // cam
-const player = new Body({ mass: 20, shape: new Sphere(5) });
+const player = new Body({ mass: 200, shape: new Sphere(5) });
 const pPos = player.position;
 const cam = FPSCannonCamera(player);
 
-const ground = new Body({ mass: 0 });
+const ballMat = new Material('ball');
+const balConMat = new ContactMaterial(ballMat, ballMat, {friction: 0.9, restitution: 1.0});
+
+const ground = new Body({ mass: 0, material: ballMat });
 ground.addShape(new Plane());
 
-const sphere = new Body({ mass: 10, shape: new Sphere(1) });
+const sphere = new Body({ mass: 200, shape: new Sphere(1), material: ballMat });
 const sPos = sphere.position;
-//sphere.addEventListener('collide', () => sphere.velocity.negate());
 
 
 export const reset = () => {
@@ -30,6 +32,7 @@ export const reset = () => {
     tex.setImage_(img).setUnit_(shader.uniform_`uFloorTex`.loc, 0);
 
     WORLD.bodies.forEach(b => WORLD.removeBody(b));
+    WORLD.addContactMaterial(balConMat);
 
     ground.quaternion.setFromEuler(-PI / 2, 0, 0);
     WORLD.addBody(ground);
@@ -37,7 +40,7 @@ export const reset = () => {
     sphere.position.set(0, 20, 20);
     WORLD.addBody(sphere);
 
-    player.position.set(0, 20, 0);
+    player.position.set(0, 10, 0);
     WORLD.addBody(player);
 };
 
