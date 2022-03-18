@@ -8,6 +8,7 @@ in vec2 vUV;
 uniform float iTime;
 uniform vec3 uSpherePos;
 uniform sampler2D uFloorTex;
+uniform sampler2D uNoiseTex;
 
 out vec4 outColor;
 
@@ -16,15 +17,17 @@ out vec4 outColor;
 #define SURF_DIST .01
 
 #define BLINN_PHONG
-//#define IMPROVED_SHADOW
+#define IMPROVED_SHADOW
 
 #define SKY_ID    0
 #define SPHERE_ID 1
 #define PLANE_ID  2
-#define CUBE_ID 1
+#define ROOM_ID 3
 
 // w is size of sphere
-const vec3 SpotLightPos1 = vec3(0.9, 32., -50.);
+const vec3 SpotLightPos1 = vec3(5., 32., -50.);
+const vec3 SpotLightPos2 = vec3(-5., 32., -50.);
+const vec3 OppSpotLightPos = vec3(-5., 32., 50.);
 const vec3 SunlightDir = normalize(vec3(0.8, 1.5, 3.5));
 
 // Utils {{{
@@ -156,23 +159,31 @@ float Room(vec3 p) {
     return min(area, bars);
 }
 
-vec2 GetDist(vec3 p) {
-    float sphere = SphereSDF(p - uSpherePos, 1.);
-    float room = Room(p);
+vec2 GetInteriorDist(vec3 p) {
     float plane = Ground(p);
+    float sphere = SphereSDF(p - uSpherePos, 1.);
 
     float d = 0.;
     int id = 0;
-    if (room < plane) {
-        d = room;
-        id = SPHERE_ID;
-    } else {
+    if (plane < sphere) {
         d = plane;
         id = PLANE_ID;
-    }
-    if (sphere < d) {
+    } else {
         d = sphere;
         id = SPHERE_ID;
+    }
+    return vec2(d, id);
+}
+
+vec2 GetDist(vec3 p) {
+    vec2 ray = GetInteriorDist(p);
+    float room = Room(p);
+    float d = ray.x;
+    int id = int(ray.y);
+
+    if (room < d) {
+        d = room;
+        id = ROOM_ID;
     }
     return vec2(d, id);
 }
@@ -213,11 +224,11 @@ vec3 GetNormal(vec3 p, float id) {
     return norm;
 }
 
-float SoftShadow(vec3 ro, vec3 rd, float k) {
+float InteriorSoftShadow(vec3 ro, vec3 rd, float k) {
     float res = 1.;
     float ph = 1e20;
     for(float t = .01; t < MAX_DIST; ) {
-        float h = GetDist(ro + rd * t).x;
+        float h = GetInteriorDist(ro + rd * t).x;
         if (h < .001)
             return .1;
 #ifdef IMPROVED_SHADOW
@@ -292,7 +303,7 @@ vec3 SkyColor() {
 }
 
 vec3 GroundColor(vec3 p) {
-    return texture(uFloorTex, p.xz / 64.).xyz;
+    return texture(uFloorTex, p.xz / 64.).xyz * vec3(.4, .3, .2);
 }
 
 vec3 Material(float id, vec3 p, float light) {
@@ -303,6 +314,9 @@ vec3 Material(float id, vec3 p, float light) {
             return GroundColor(p) * light;
         case SPHERE_ID:
             return vec3(.7, .7, .5) * light;
+        case ROOM_ID:
+            vec3 col = p.y > 12. ? vec3(.9, .94, .7) : vec3(.2, .3, .2);
+            return col * texture(uNoiseTex, p.xy / 8.).xyz * light;
         default:
             return vec3(light);
     }
@@ -318,15 +332,20 @@ void main() {
 
     vec3 p = vRO + vRD * dist;
 
-    vec3 spotLightDir = normalize(SpotLightPos1 - p);
+    vec3 spotLightDir1 = normalize(SpotLightPos1 - p);
+    vec3 spotLightDir2 = normalize(SpotLightPos2 - p);
+    vec3 oppSpotLightDir = normalize(OppSpotLightPos - p);
 
     vec3 norm = GetNormal(p, id);
     float sunlight = BlinnPhongLight(norm, vRD, SunlightDir);
-    float spotlight = BlinnPhongLight(norm, vRD, spotLightDir);
+    float spotlight1 = BlinnPhongLight(norm, vRD, spotLightDir1) * 4.;
+    float spotlight2 = BlinnPhongLight(norm, vRD, spotLightDir2) * 4.;
+    float oppSpotLight = BlinnPhongLight(norm, vRD, oppSpotLightDir) * 2.;
+    float spotlight = spotlight1 + spotlight2 + oppSpotLight;
     float light = max(sunlight, spotlight);
 
     light *= HardShadow(p, norm, SunlightDir);
-    //light *= SoftShadow(p, SunlightDir, 32.);
+    light *= max(.8, InteriorSoftShadow(p, vec3(spotLightDir1), 3.));
 
     vec3 col = Material(id, p, light);
 
