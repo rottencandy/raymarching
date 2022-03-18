@@ -11,7 +11,7 @@ uniform sampler2D uFloorTex;
 
 out vec4 outColor;
 
-#define MAX_STEPS 200
+#define MAX_STEPS 256
 #define MAX_DIST 200.
 #define SURF_DIST .01
 
@@ -24,16 +24,10 @@ out vec4 outColor;
 #define CUBE_ID 1
 
 // w is size of sphere
-const vec3 SpotLightPos = vec3(2., 5., 0.);
-const vec3 SunlightDir = normalize(vec3(0., 1., 4.5));
+const vec3 SpotLightPos1 = vec3(0.9, 32., -50.);
+const vec3 SunlightDir = normalize(vec3(0.8, 1.5, 3.5));
 
 // Utils {{{
-
-mat2 Rot(float a) {
-    float s = sin(a);
-    float c = cos(a);
-    return mat2(c, -s, s, c);
-}
 
 float smin(float a, float b, float k) {
     float h = clamp(.5 + .5 * (b - a) / k, 0., 1.);
@@ -83,8 +77,8 @@ float AAPlaneSDF(vec3 p, float height) {
     return p.y - height;
 }
 
-float RotPlaneSDF(vec3 p, vec3 norm) {
-    return dot(p, normalize(norm));
+float CylinderSDF(vec3 p, vec3 c) {
+    return length(p.xz - c.xy) - c.z;
 }
 
 float CapsuleSDF(vec3 p, vec3 a, vec3 b, float r) {
@@ -111,6 +105,12 @@ float CubeSDF(vec3 p, vec3 b) {
 
 // Operations {{{
 
+mat2 Rot(float a) {
+    float s = sin(a);
+    float c = cos(a);
+    return mat2(c, -s, s, c);
+}
+
 float OpOnion(in float sdf, in float thickness) { return abs(sdf)-thickness; }
 
 float OpUnion( float d1, float d2 ) { return min(d1,d2); }
@@ -119,18 +119,41 @@ float OpSubtraction( float d1, float d2 ) { return max(-d1,d2); }
 
 float OpIntersection( float d1, float d2 ) { return max(d1,d2); }
 
+vec3 OpRep(vec3 p, vec3 gap) { return mod(p + .6 * gap, gap) - .6 * gap; }
+
+vec3 OpMove(vec3 p, vec3 x) { return p + x; }
+
 // }}}
 
-// Objects {{{
+// Scene {{{
 
 float Ground(vec3 p) {
     return AAPlaneSDF(p, 0.);
 }
 
 float Room(vec3 p) {
-    float room = OpOnion(CubeSDF(p, vec3(64, 50, 64)), .5);
-    float hole = CubeSDF(p - vec3(0, 32, 63), vec3(20., 10., 2.));
-    return OpSubtraction(hole, room);
+    float room = OpOnion(CubeSDF(p, vec3(70, 50, 50)), .5);
+
+    vec3 q = OpRep(p, vec3(26., 0., 0.));
+    q.z = abs(q.z);
+    vec3 winP = vec3(q - vec3(0, 32, 50));
+    float window = CubeSDF(winP, vec3(8., 10., 2.));
+
+    q.x += 13.5;
+    float pillars = OpSubtraction(
+        CubeSDF(q, vec3(2.1, 48., 48.)),
+        CubeSDF(q, vec3(2., 49., 49.))
+    );
+
+    vec3 barP = p;
+    barP.z = abs(barP.z);
+    barP.xy *= Rot(1.5708);
+    barP.x += 32.;
+    barP.z -= 50.;
+    float bars = CylinderSDF(barP, vec3(.1));
+
+    float area = OpSubtraction(window, min(room, pillars));
+    return min(area, bars);
 }
 
 vec2 GetDist(vec3 p) {
@@ -158,14 +181,14 @@ vec2 GetDist(vec3 p) {
 
 // Raymarching {{{
 
-vec2 RayMarch(vec3 ro, vec3 rd) {
+vec2 RayMarch(vec3 ro, vec3 rd, int maxIter) {
     float dO = 0.;
     int id = 0;
     for (int i = 0; i < MAX_STEPS; i++) {
         vec2 dist = GetDist(ro + rd * dO);
         float dS = dist.x;
         dO += dS;
-        if (dO > MAX_DIST) {
+        if (dO > MAX_DIST || i > maxIter) {
             id = SKY_ID;
             dO = MAX_DIST;
             break;
@@ -177,7 +200,7 @@ vec2 RayMarch(vec3 ro, vec3 rd) {
     return vec2(dO, id);
 }
 
-vec3 GetNormal(vec3 p) {
+vec3 GetNormal(vec3 p, float id) {
     vec2 e = vec2(.01, .0);
 
     vec3 n = GetDist(p).x - vec3(
@@ -185,8 +208,9 @@ vec3 GetNormal(vec3 p) {
         GetDist(p - e.yxy).x,
         GetDist(p - e.yyx).x
     );
+    vec3 norm = normalize(n);
 
-    return normalize(n);
+    return norm;
 }
 
 float SoftShadow(vec3 ro, vec3 rd, float k) {
@@ -208,9 +232,12 @@ float SoftShadow(vec3 ro, vec3 rd, float k) {
     return res;
 }
 
-float DiffuseLight(vec3 p, vec3 lightDir) {
-    vec3 n = GetNormal(p);
+float HardShadow(vec3 p, vec3 norm, vec3 lightDir) {
+    float sdist = RayMarch(p + norm * SURF_DIST * 2., lightDir, 128).x;
+    return sdist < MAX_DIST ? .2 : 1.;
+}
 
+float DiffuseLight(vec3 n, vec3 p, vec3 lightDir) {
     float dif = max(dot(n, lightDir), 0.);
 
     return dif;
@@ -260,7 +287,7 @@ vec3 fog(vec3 col, float t) {
 
 vec3 SkyColor() {
     vec2 p = vRD.xz - vec2(.0, .5 + vRD.y);
-    float sun = .08 / length(vRD.xz - vec2(.0, .5 + vRD.y));
+    float sun = .08 / length(vRD.xz - vec2(.0, .1 + vRD.y));
     return mix(vec3(.3, .5, .7), vec3(.9, .9, .8), sun);
 }
 
@@ -285,23 +312,20 @@ vec3 Material(float id, vec3 p, float light) {
 
 
 void main() {
-    vec2 ray = RayMarch(vRO, vRD);
+    vec2 ray = RayMarch(vRO, vRD, 256);
     float dist = ray.x;
     float id = ray.y;
 
     vec3 p = vRO + vRD * dist;
 
-    vec3 spotLightDir = normalize(SpotLightPos - p);
+    vec3 spotLightDir = normalize(SpotLightPos1 - p);
 
-    vec3 norm = GetNormal(p);
+    vec3 norm = GetNormal(p, id);
     float sunlight = BlinnPhongLight(norm, vRD, SunlightDir);
     float spotlight = BlinnPhongLight(norm, vRD, spotLightDir);
     float light = max(sunlight, spotlight);
 
-    // hard shadows
-    float sdist = RayMarch(p + norm * SURF_DIST * 2., SunlightDir).x;
-    if (sdist < MAX_DIST) light *= .2;
-
+    light *= HardShadow(p, norm, SunlightDir);
     //light *= SoftShadow(p, SunlightDir, 32.);
 
     vec3 col = Material(id, p, light);
