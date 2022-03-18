@@ -1,5 +1,5 @@
 import { Body, Plane, Sphere } from 'cannon-es';
-import { FPSCamera } from './camera';
+import { FPSCannonCamera } from './camera';
 import { F32, PI } from './globals';
 import { ASPECT, CTX, WORLD } from './setup';
 
@@ -36,18 +36,23 @@ ground.quaternion.setFromEuler(-PI / 2, 0, 0);
 WORLD.addBody(ground);
 
 // sphere
-const sphere = new Body({
-    mass: 10,
-    shape: new Sphere(1),
-});
+const sphere = new Body({ mass: 10, shape: new Sphere(1) });
 sphere.position.set(0, 20, 20);
 const sPos = sphere.position;
+// bounce
+//sphere.addEventListener('collide', () => sphere.velocity.negate());
 WORLD.addBody(sphere);
 
-const cam = FPSCamera();
+// cam
+const player = new Body({ mass: 20, shape: new Sphere(5) });
+player.position.set(0, 20, 0);
+WORLD.addBody(player);
+const cam = FPSCannonCamera(player);
 
 export const update = (dt: number) => {
     cam.update_(dt);
+    // we don't use the cam matrix, so recalculation isn't needed
+    //cam.recalculate_();
 };
 
 //let time = 0;
@@ -55,8 +60,8 @@ export const render = (_dt: number) => {
     CTX.clear_();
     vao_.bind_();
     shader.use_();
-    shader.uniform_`uCamPos`.u3f_(cam.eye_[0], cam.eye_[1], cam.eye_[2]);
-    shader.uniform_`uLookDir`.u3f_(cam.lookDir_[0], cam.lookDir_[1], cam.lookDir_[2]);
+    shader.uniform_`uCamPos`.u3f_(cam.pos_.x, cam.pos_.y, cam.pos_.z);
+    shader.uniform_`uLookDir`.u3f_(cam.lookDir_.x, cam.lookDir_.y, cam.lookDir_.z);
     //shader.uniform_`uTime`.u1f_(time += 1e-3);
     shader.uniform_`uSpherePos`.u3f_(sPos.x, sPos.y, sPos.z);
     draw_();
