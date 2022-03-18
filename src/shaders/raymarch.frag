@@ -227,8 +227,8 @@ float BlinnPhongLight(vec3 norm, vec3 rd, vec3 lightDir) {
 }
 
 vec3 fog(vec3 col, float t) {
-    vec3 ext = exp2(-t * 0.005 * vec3(1.4, 1.5, 1.2));
-    return col * ext + (1.0 - ext) * .05; // 0.55
+    vec3 ext = exp2(-t * 0.005 * vec3(.2));
+    return col * ext + (1.0 - ext) * .1; // 0.55
 }
 
 vec3 SkyColor() {
@@ -272,11 +272,12 @@ void main() {
     // hard shadows
     float sdist = RayMarch(p + norm * SURF_DIST * 2., SunlightDir).x;
     if (sdist < MAX_DIST) light *= .2;
+
     //light *= SoftShadow(p, SunlightDir, 32.);
 
     vec3 col = Material(id, p, light);
 
-    //col = fog(col, dist);
+    col = fog(col, dist);
 
     // gamma correction
     col = pow(col, vec3(1.0 / 2.2));
