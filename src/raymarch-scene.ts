@@ -6,10 +6,12 @@ import { ASPECT, CTX, WORLD } from './setup';
 import frag from './shaders/raymarch.frag';
 import vert from './shaders/raymarch.vert';
 
-import img from './floor.png';
+import floor from './floor.png';
+import noise from './noise.png';
 
 const shader = CTX.shader_(vert, frag).use_();
-const tex = CTX.texture_();
+const floorTex = CTX.texture_();
+const noiseTex = CTX.texture_();
 
 // cam
 const player = new Body({ mass: 200, shape: new Sphere(5) });
@@ -19,8 +21,20 @@ const cam = FPSCannonCamera(player);
 const ballMat = new Material('ball');
 const balConMat = new ContactMaterial(ballMat, ballMat, {friction: 0.9, restitution: 1.0});
 
-const ground = new Body({ mass: 0, material: ballMat });
-ground.addShape(new Plane());
+const ground = new Body({ mass: 0, material: ballMat }).addShape(new Plane());
+ground.quaternion.setFromEuler(-PI / 2, 0, 0);
+const planeXM = new Body({ mass: 0, material: ballMat }).addShape(new Plane());
+planeXM.quaternion.setFromEuler(0, PI / 2, 0);
+planeXM.position.set(-70, 0, 0);
+const planeXP = new Body({ mass: 0, material: ballMat }).addShape(new Plane());
+planeXP.quaternion.setFromEuler(0, -PI / 2, 0);
+planeXP.position.set(70, 0, 0);
+const planeZM = new Body({ mass: 0, material: ballMat }).addShape(new Plane());
+planeZM.quaternion.setFromEuler(0, 0, 0);
+planeZM.position.set(0, 0, -50);
+const planeZP = new Body({ mass: 0, material: ballMat }).addShape(new Plane());
+planeZP.quaternion.setFromEuler(0, PI, 0);
+planeZP.position.set(0, 0, 50);
 
 const sphere = new Body({ mass: 200, shape: new Sphere(1), material: ballMat });
 const sPos = sphere.position;
@@ -29,13 +43,17 @@ const sPos = sphere.position;
 export const reset = () => {
     shader.uniform_`aspect`.u1f_(ASPECT);
     shader.use_();
-    tex.setImage_(img).setUnit_(shader.uniform_`uFloorTex`.loc, 0);
+    floorTex.setImage_(floor).setUnit_(shader.uniform_`uFloorTex`.loc, 0);
+    noiseTex.setImage_(noise).setUnit_(shader.uniform_`uNoiseTex`.loc, 1);
 
     WORLD.bodies.forEach(b => WORLD.removeBody(b));
     WORLD.addContactMaterial(balConMat);
 
-    ground.quaternion.setFromEuler(-PI / 2, 0, 0);
     WORLD.addBody(ground);
+    WORLD.addBody(planeXM);
+    WORLD.addBody(planeXP);
+    WORLD.addBody(planeZM);
+    WORLD.addBody(planeZP);
 
     sphere.position.set(0, 20, 20);
     WORLD.addBody(sphere);
