@@ -194,17 +194,16 @@ vec2 GetDist(vec3 p) {
 
 vec2 RayMarch(vec3 ro, vec3 rd, int maxIter) {
     float dO = 0.;
-    int id = 0;
+    float id = 0.;
     for (int i = 0; i < MAX_STEPS; i++) {
         vec2 dist = GetDist(ro + rd * dO);
         float dS = dist.x;
+        id = dist.y;
         dO += dS;
-        if (dO > MAX_DIST || i > maxIter) {
-            id = SKY_ID;
-            dO = MAX_DIST;
-            break;
+        if (dO > MAX_DIST) {
+            return vec2(MAX_DIST, SKY_ID);
         }
-        if (abs(dS) < SURF_DIST) {
+        if (i > maxIter || abs(dS) < SURF_DIST) {
             return vec2(dO, dist.y);
         }
     }
@@ -326,7 +325,7 @@ vec3 Material(float id, vec3 p, float light) {
 
 
 void main() {
-    vec2 ray = RayMarch(vRO, vRD, 256);
+    vec2 ray = RayMarch(vRO, vRD, MAX_STEPS);
     float dist = ray.x;
     float id = ray.y;
 
