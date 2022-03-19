@@ -248,14 +248,14 @@ float BlinnPhongLight(vec3 norm, vec3 rd, vec3 lightDir) {
 // Materials {{{
 
 vec3 fog(vec3 col, float t) {
-    vec3 ext = exp2(-t * 0.005 * vec3(.2));
-    return col * ext + (1.0 - ext) * .1; // 0.55
+    vec3 ext = exp2(-t * 0.005 * vec3(.2, .4, .6));
+    return col * ext + (1.0 - ext) * 2.; // * 0.55;
 }
 
 vec3 SkyColor() {
     vec2 p = vRD.xz - vec2(.0, .5 + vRD.y);
     float sun = .08 / length(vRD.xz - vec2(.3, .1 + vRD.y));
-    return mix(vec3(.3, .5, .7), vec3(.9, .9, .8), sun);
+    return mix(vec3(.1, .3, .5), vec3(.9, .9, .8), sun);
 }
 
 vec3 Material(float id, vec3 p, float light, vec3 n) {
