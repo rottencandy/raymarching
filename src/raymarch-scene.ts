@@ -17,30 +17,46 @@ const noiseTex = CTX.texture_();
 const ballTex = CTX.texture_();
 
 // cam
-const player = new Body({ mass: 200, shape: new Sphere(5) });
+const player = new Body({ mass: 900, shape: new Sphere(5) });
 const pPos = player.position;
 const cam = FPSCannonCamera(player, 6);
 
+// physics material
 const ballMat = new Material('ball');
-const balConMat = new ContactMaterial(ballMat, ballMat, {friction: 0.9, restitution: 1.0});
+const balConMat = new ContactMaterial(ballMat, ballMat, { friction: 1.9, restitution: 0.8 });
 
+// ground
 const ground = new Body({ mass: 0, material: ballMat }).addShape(new Plane());
 ground.quaternion.setFromEuler(-PI / 2, 0, 0);
+const roof = new Body({ mass: 0 }).addShape(new Plane());
+roof.quaternion.setFromEuler(PI / 2, 0, 0);
+roof.position.set(0, 50, 0);
+
 const planeXM = new Body({ mass: 0, material: ballMat }).addShape(new Plane());
 planeXM.quaternion.setFromEuler(0, PI / 2, 0);
 planeXM.position.set(-70, 0, 0);
+
 const planeXP = new Body({ mass: 0, material: ballMat }).addShape(new Plane());
 planeXP.quaternion.setFromEuler(0, -PI / 2, 0);
 planeXP.position.set(70, 0, 0);
+
 const planeZM = new Body({ mass: 0, material: ballMat }).addShape(new Plane());
 planeZM.quaternion.setFromEuler(0, 0, 0);
 planeZM.position.set(0, 0, -50);
+
 const planeZP = new Body({ mass: 0, material: ballMat }).addShape(new Plane());
 planeZP.quaternion.setFromEuler(0, PI, 0);
 planeZP.position.set(0, 0, 50);
 
+// sphere
 const sphere = new Body({ mass: 200, shape: new Sphere(1), material: ballMat });
 const sPos = sphere.position;
+let sphereHeld = false;
+sphere.addEventListener('collide', (e) => {
+    if (!sphereHeld && e.body.index === player.index) {
+        sphereHeld = true;
+    }
+});
 
 
 export const reset = () => {
@@ -55,6 +71,7 @@ export const reset = () => {
     WORLD.addContactMaterial(balConMat);
 
     WORLD.addBody(ground);
+    WORLD.addBody(roof);
     WORLD.addBody(planeXM);
     WORLD.addBody(planeXP);
     WORLD.addBody(planeZM);
@@ -76,6 +93,19 @@ export const update = (dt: number) => {
     // will break if player height / ground pos is changed
     if (Keys.space_ && player.position.y < 5) {
         player.velocity.y = 24;
+    }
+
+    if (sphereHeld) {
+        sPos.x = player.position.x + cam.lookDir_.x * 10.;
+        sPos.y = player.position.y - 1.;
+        sPos.z = player.position.z + cam.lookDir_.z * 10.;
+
+        if (Keys.clicked_) {
+            sphere.velocity.x = cam.lookDir_.x * 90.;
+            sphere.velocity.y = cam.lookDir_.y * 90.;
+            sphere.velocity.z = cam.lookDir_.z * 90.;
+            sphereHeld = false;
+        }
     }
 };
 
