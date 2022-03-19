@@ -8,6 +8,7 @@ import vert from './shaders/raymarch.vert';
 
 import floor from './floor.png';
 import noise from './noise.png';
+import { Keys } from './engine/input';
 
 const shader = CTX.shader_(vert, frag).use_();
 const floorTex = CTX.texture_();
@@ -66,6 +67,12 @@ export const update = (dt: number) => {
     cam.update_(dt);
     // we don't use the cam matrix, so recalculation isn't needed
     //cam.recalculate_();
+
+    // NOTE: checking for player ground contact using hardcoded position
+    // will break if player height / ground pos is changed
+    if (Keys.space_ && player.position.y < 5) {
+        player.velocity.y = 24;
+    }
 };
 
 //let time = 0;

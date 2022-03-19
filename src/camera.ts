@@ -42,7 +42,7 @@ export const FPSCamera = (speed = .01): Camera => {
 const UP = new Vec3(0, 1, 0);
 const MAX_PITCH = PI / 2 - 0.01;
 
-export const FPSCannonCamera = (body: Body, spd = 12) => {
+export const FPSCannonCamera = (body: Body, spd = 10) => {
     const front = new Vec3(0, 0, 1);
     const side = new Vec3();
     let pitch = 0, yaw = PI / 2;
