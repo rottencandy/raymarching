@@ -67,8 +67,8 @@ const box4 = new Body({ mass: 200, shape: new Box(new Vec3(2, 2, 2)) });
 
 
 export const reset = () => {
-    shader.uniform_`aspect`.u1f_(ASPECT);
     shader.use_();
+    shader.uniform_`aspect`.u1f_(ASPECT);
     // TODO: texture size proportional to load time(and resets bind point after load)
     floorTex.setImage_(floor).setUnit_(shader.uniform_`uFloorTex`.loc, 0);
     ballTex.setImage_(ball).setUnit_(shader.uniform_`uBallTex`.loc, 1);

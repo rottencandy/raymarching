@@ -1,12 +1,28 @@
 import { createDropdown } from './debug';
 import { startLoop } from './engine/loop';
 import { F32 } from './globals';
-import * as raymarchScene from './raymarch-scene';
+import * as baseScene from './base-scene';
+import * as indoorScene from './raymarch-scene';
 import { CTX, WORLD } from './setup';
 
 createDropdown('Resolution: ', ['426x240', '640x360', '854x480', '1280x720', '1920x1080'], (val) => {
     const [width, height] = val.split('x').map(v => Number(v));
     CTX.changeSize_(width, height);
+})
+
+let activeScene = baseScene;
+activeScene.reset();
+
+createDropdown('Scene: ', ['Base', 'Indoor'], (val) => {
+    switch(val) {
+        case 'Base':
+            activeScene = baseScene;
+            break;
+        case 'Indoor':
+            activeScene = indoorScene;
+            break;
+    }
+    activeScene.reset();
 })
 
 const planeCoords = F32([
@@ -21,17 +37,15 @@ const { vao_, draw_ } = CTX.createMesh_(
     [[0, 2]],
 );
 
-raymarchScene.reset();
-
 startLoop(
     (dt) => {
-        raymarchScene.update(dt);
+        activeScene.update(dt);
         WORLD.fixedStep();
     },
     (dt) => {
         CTX.clear_();
         vao_.bind_();
-        raymarchScene.render(dt);
+        activeScene.render(dt);
         draw_();
     }
 );

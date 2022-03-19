@@ -282,7 +282,6 @@ export const createGLContext = (canvas: HTMLCanvasElement, width = 400, height =
             return { vao_: vao, draw_: () => thisObj.drawElements_(indices.length) };
         },
         resize_() {
-            console.log('setting: ', width, height);
             const ratio = deviceScaleRatio(width, height);
             canvas.width = width;
             canvas.height = height;
