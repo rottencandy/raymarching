@@ -7,7 +7,9 @@ in vec2 vUV;
 
 uniform float iTime;
 uniform vec3 uSpherePos;
+
 uniform sampler2D uFloorTex;
+uniform sampler2D uBallTex;
 uniform sampler2D uNoiseTex;
 
 out vec4 outColor;
@@ -297,25 +299,44 @@ vec3 fog(vec3 col, float t) {
 
 vec3 SkyColor() {
     vec2 p = vRD.xz - vec2(.0, .5 + vRD.y);
-    float sun = .08 / length(vRD.xz - vec2(.0, .1 + vRD.y));
+    float sun = .08 / length(vRD.xz - vec2(.3, .1 + vRD.y));
     return mix(vec3(.3, .5, .7), vec3(.9, .9, .8), sun);
 }
 
 vec3 GroundColor(vec3 p) {
-    return texture(uFloorTex, p.xz / 64.).xyz * vec3(.4, .3, .2);
+    return texture(uFloorTex, p.xz / 64.).rgb * vec3(.4, .3, .2);
 }
 
-vec3 Material(float id, vec3 p, float light) {
+vec3 NoiseTex(vec3 p, vec3 n) {
+    vec3 texXZ = texture(uNoiseTex, p.xz).rgb;
+    vec3 texXY = texture(uNoiseTex, p.xy).rgb;
+    vec3 texYZ = texture(uNoiseTex, p.yz).rgb;
+    return texXZ * n.y + texXY * n.z + texYZ * n.x;
+}
+
+vec3 Material(float id, vec3 p, float light, vec3 n) {
     switch(int(id)) {
         case SKY_ID:
             return SkyColor();
+
         case PLANE_ID:
             return GroundColor(p) * light;
+
         case SPHERE_ID:
-            return vec3(.7, .7, .5) * light;
+            // convert to local space
+            vec3 sp = p - uSpherePos;
+            vec3 stexXZ = texture(uBallTex, sp.xz).rgb;
+            vec3 stexXY = texture(uBallTex, sp.xy).rgb;
+            vec3 stexYZ = texture(uBallTex, sp.yz).rgb;
+            vec3 sn = abs(n * n * n);
+            vec3 stex = stexXZ * sn.y + stexXY * sn.z + stexYZ * sn.x;
+            return stex * light;
+
         case ROOM_ID:
             vec3 col = p.y > 12. ? vec3(.9, .94, .7) : vec3(.2, .3, .2);
-            return col * texture(uNoiseTex, p.xy / 8.).xyz * light;
+            vec3 tex = NoiseTex(p, n);
+            return col * tex * light;
+
         default:
             return vec3(light);
     }
@@ -346,7 +367,7 @@ void main() {
     light *= HardShadow(p, norm, SunlightDir);
     light *= max(.8, InteriorSoftShadow(p, vec3(spotLightDir1), 3.));
 
-    vec3 col = Material(id, p, light);
+    vec3 col = Material(id, p, light, norm);
 
     col = fog(col, dist);
 

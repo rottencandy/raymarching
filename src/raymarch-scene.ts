@@ -8,11 +8,13 @@ import vert from './shaders/raymarch.vert';
 
 import floor from './floor.png';
 import noise from './noise.png';
+import ball from './ball.png';
 import { Keys } from './engine/input';
 
 const shader = CTX.shader_(vert, frag).use_();
 const floorTex = CTX.texture_();
 const noiseTex = CTX.texture_();
+const ballTex = CTX.texture_();
 
 // cam
 const player = new Body({ mass: 200, shape: new Sphere(5) });
@@ -44,8 +46,10 @@ const sPos = sphere.position;
 export const reset = () => {
     shader.uniform_`aspect`.u1f_(ASPECT);
     shader.use_();
+    // TODO: texture size proportional to load time(and resets bind point after load)
     floorTex.setImage_(floor).setUnit_(shader.uniform_`uFloorTex`.loc, 0);
-    noiseTex.setImage_(noise).setUnit_(shader.uniform_`uNoiseTex`.loc, 1);
+    ballTex.setImage_(ball).setUnit_(shader.uniform_`uBallTex`.loc, 1);
+    noiseTex.setImage_(noise).setUnit_(shader.uniform_`uNoiseTex`.loc, 2);
 
     WORLD.bodies.forEach(b => WORLD.removeBody(b));
     WORLD.addContactMaterial(balConMat);
