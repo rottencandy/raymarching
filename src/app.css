@@ -45,9 +45,10 @@ html, body {
 /* Debug panel */
 #debug {
     position: absolute;
+    cursor: pointer;
     border: 10px solid #ccc;
     top: 0;
     right: 0;
 }
 summary { background-color: #ccc; }
-details { background-color: white; }
+details { background-color: #ccc; }

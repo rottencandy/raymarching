@@ -2,7 +2,7 @@ import { World } from 'cannon-es';
 import { createGLContext } from './engine/webgl2';
 import { getById } from './globals';
 
-const WIDTH = 400, HEIGHT = 300;
+const WIDTH = 426, HEIGHT = 240;
 export const ASPECT = WIDTH / HEIGHT;
 const ctx = createGLContext(getById('c'), WIDTH, HEIGHT);
 ctx.resize_();

@@ -1,7 +1,13 @@
+import { createDropdown } from './debug';
 import { startLoop } from './engine/loop';
 import { F32 } from './globals';
 import * as raymarchScene from './raymarch-scene';
 import { CTX, WORLD } from './setup';
+
+createDropdown('Resolution: ', ['426x240', '640x360', '854x480', '1280x720', '1920x1080'], (val) => {
+    const [width, height] = val.split('x').map(v => Number(v));
+    CTX.changeSize_(width, height);
+})
 
 const planeCoords = F32([
     -1,  1,

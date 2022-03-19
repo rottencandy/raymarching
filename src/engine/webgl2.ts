@@ -236,6 +236,7 @@ type WebglState = {
     draw_: (count: number, mode?: number, offset?: number) => void;
     drawElements_: (count: number, mode?: number, offset?: number) => void;
     resize_: () => void;
+    changeSize_: (w: number, h: number) => void;
     createMesh_: (data: [Float32Array, number[]], attribs: AttribPointers[]) => {
         vao_: VAOState, draw_: () => void
     };
@@ -281,12 +282,20 @@ export const createGLContext = (canvas: HTMLCanvasElement, width = 400, height =
             return { vao_: vao, draw_: () => thisObj.drawElements_(indices.length) };
         },
         resize_() {
+            console.log('setting: ', width, height);
             const ratio = deviceScaleRatio(width, height);
+            canvas.width = width;
+            canvas.height = height;
             canvas.style.width = width * ratio + 'px';
             canvas.style.height = height * ratio + 'px';
             gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
             // display note if device is in potrait
             getById('d').style.display = innerWidth < innerHeight ? 'block' : 'none';
+        },
+        changeSize_(w, h) {
+            width = w;
+            height = h;
+            thisObj.resize_();
         },
         renderTargetContext_(target) {
             const fb = gl.createFramebuffer();
