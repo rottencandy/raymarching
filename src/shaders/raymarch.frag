@@ -8,6 +8,17 @@ in vec2 vUV;
 uniform float iTime;
 uniform vec3 uSpherePos;
 
+uniform vec3 uBox1Pos;
+uniform vec3 uBox2Pos;
+uniform vec3 uBox3Pos;
+uniform vec3 uBox4Pos;
+//uniform vec3 uBox5Pos;
+uniform vec4 uBox1Quat;
+uniform vec4 uBox2Quat;
+uniform vec4 uBox3Quat;
+uniform vec4 uBox4Quat;
+uniform vec4 uBox5Quat;
+
 uniform sampler2D uFloorTex;
 uniform sampler2D uBallTex;
 uniform sampler2D uNoiseTex;
@@ -15,7 +26,7 @@ uniform sampler2D uNoiseTex;
 out vec4 outColor;
 
 #define MAX_STEPS 256
-#define MAX_DIST 200.
+#define MAX_DIST 256.
 #define SURF_DIST .01
 
 #define BLINN_PHONG
@@ -24,7 +35,8 @@ out vec4 outColor;
 #define SKY_ID    0
 #define SPHERE_ID 1
 #define PLANE_ID  2
-#define ROOM_ID 3
+#define ROOM_ID   3
+#define BOX_ID    4
 
 // w is size of sphere
 const vec3 SpotLightPos1 = vec3(5., 32., -50.);
@@ -68,6 +80,12 @@ float fbm(vec2 x) {
 		a *= 0.5;
 	}
 	return v;
+}
+
+// rotate a vector by a quaternion
+// https://twistedpairdevelopment.wordpress.com/2013/02/11/rotating-a-vector-by-a-quaternion-in-glsl/
+vec3 RotateVector(vec4 quat, vec3 vec) {
+    return vec + 2.0 * cross(cross(vec, quat.xyz) + quat.w * vec, quat.xyz);
 }
 
 // }}}
@@ -163,7 +181,13 @@ float Room(vec3 p) {
 
 vec2 GetInteriorDist(vec3 p) {
     float plane = Ground(p);
+    // TODO: rotate sphere
     float sphere = SphereSDF(p - uSpherePos, 1.);
+    float box1 = CubeSDF(RotateVector(uBox1Quat, p - uBox1Pos), vec3(2));
+    float box2 = CubeSDF(RotateVector(uBox2Quat, p - uBox2Pos), vec3(2));
+    float box3 = CubeSDF(RotateVector(uBox3Quat, p - uBox3Pos), vec3(2));
+    float box4 = CubeSDF(RotateVector(uBox4Quat, p - uBox4Pos), vec3(2));
+    //float box5 = CubeSDF(RotateVector(uBox5Quat, p - uBox5Pos), vec3(2));
 
     float d = 0.;
     int id = 0;
@@ -174,6 +198,26 @@ vec2 GetInteriorDist(vec3 p) {
         d = sphere;
         id = SPHERE_ID;
     }
+    if (box1 < d) {
+        d = box1;
+        id = BOX_ID;
+    }
+    if (box2 < d) {
+        d = box2;
+        id = BOX_ID;
+    }
+    if (box3 < d) {
+        d = box3;
+        id = BOX_ID;
+    }
+    if (box4 < d) {
+        d = box4;
+        id = BOX_ID;
+    }
+    //if (box5 < d) {
+    //    d = box5;
+    //    id = BOX_ID;
+    //}
     return vec2(d, id);
 }
 
@@ -314,6 +358,14 @@ vec3 NoiseTex(vec3 p, vec3 n) {
     return texXZ * n.y + texXY * n.z + texYZ * n.x;
 }
 
+vec3 CubeTex(vec3 p, vec3 n, sampler2D tex) {
+    vec3 texXZ = texture(tex, p.xz).rgb;
+    vec3 texXY = texture(tex, p.xy).rgb;
+    vec3 texYZ = texture(tex, p.yz).rgb;
+    // sn /= sn.x + sn.y + sn.z;
+    return texXZ * n.y + texXY * n.z + texYZ * n.x;
+}
+
 vec3 Material(float id, vec3 p, float light, vec3 n) {
     switch(int(id)) {
         case SKY_ID:
@@ -325,16 +377,17 @@ vec3 Material(float id, vec3 p, float light, vec3 n) {
         case SPHERE_ID:
             // convert to local space
             vec3 sp = p - uSpherePos;
-            vec3 stexXZ = texture(uBallTex, sp.xz).rgb;
-            vec3 stexXY = texture(uBallTex, sp.xy).rgb;
-            vec3 stexYZ = texture(uBallTex, sp.yz).rgb;
             vec3 sn = abs(n * n * n);
-            vec3 stex = stexXZ * sn.y + stexXY * sn.z + stexYZ * sn.x;
+            // sn /= sn.x + sn.y + sn.z;
+            vec3 stex = CubeTex(sp, sn, uBallTex);
             return stex * light;
+
+        case BOX_ID:
+            return vec3(.8, .4, .1) * CubeTex(p / 2., n, uNoiseTex) * light;
 
         case ROOM_ID:
             vec3 col = p.y > 12. ? vec3(.9, .94, .7) : vec3(.2, .3, .2);
-            vec3 tex = NoiseTex(p, n);
+            vec3 tex = CubeTex(p, n, uNoiseTex);
             return col * tex * light;
 
         default:

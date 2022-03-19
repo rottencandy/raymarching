@@ -17,7 +17,7 @@ const vec3 UP = vec3(0., 1., 0.);
 // rotate a vector by a quaternion
 // https://twistedpairdevelopment.wordpress.com/2013/02/11/rotating-a-vector-by-a-quaternion-in-glsl/
 vec3 RotateVector(vec4 quat, vec3 vec) {
-return vec + 2.0 * cross(cross(vec, quat.xyz) + quat.w * vec, quat.xyz);
+    return vec + 2.0 * cross(cross(vec, quat.xyz) + quat.w * vec, quat.xyz);
 }
 
 void main() {
