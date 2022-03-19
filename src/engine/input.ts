@@ -6,6 +6,7 @@ type WatchedKeys = {
     up_: boolean,
     down_: boolean,
     space_: boolean,
+    shift_: boolean,
     esc_: boolean,
     clicked_: boolean,
     pointerLocked_: boolean,
@@ -22,6 +23,7 @@ export const Keys: WatchedKeys = {
     down_: !!0,
 
     space_: !!0,
+    shift_: !!0,
     esc_: !!0,
 
     clicked_: !!0,
@@ -67,6 +69,9 @@ export const setupKeyListener = (canvas: HTMLCanvasElement, width: number, heigh
                 break;
             case ' ':
                 Keys.space_ = value;
+                break;
+            case 'Shift':
+                Keys.shift_ = value;
         }
     }
 

@@ -17,7 +17,7 @@ const noiseTex = CTX.texture_();
 // cam
 const player = new Body({ mass: 200, shape: new Sphere(5) });
 const pPos = player.position;
-const cam = FPSCannonCamera(player);
+const cam = FPSCannonCamera(player, 6);
 
 const ballMat = new Material('ball');
 const balConMat = new ContactMaterial(ballMat, ballMat, {friction: 0.9, restitution: 1.0});
