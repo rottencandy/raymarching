@@ -250,19 +250,43 @@ float BlinnPhongLight(vec3 norm, vec3 rd, vec3 lightDir) {
 
 vec3 fog(vec3 col, float t) {
     vec3 ext = exp2(-t * 0.005 * vec3(.2, .4, .6));
-    return col * ext + (1.0 - ext) * 2.; // * 0.55;
+    return col * ext + (1.0 - ext) * .2; // * 0.55;
 }
 
-vec3 SkyColor() {
-    vec2 p = vRD.xz - vec2(.0, .5 + vRD.y);
-    float sun = .08 / length(vRD.xz - vec2(.3, .1 + vRD.y));
-    return mix(vec3(.1, .3, .5), vec3(.9, .9, .8), sun);
+// Source: https://www.shadertoy.com/view/XdcBW4
+vec3 GetSky(vec3 ld){
+    vec3 rd = vRD;
+
+    // Sky color gradients.
+    vec3 col = vec3(.8, .7, .5), col2 = vec3(.4, .6, .9);
+
+    //return mix(col, col2, pow(max(rd.y*.5 + .9, 0.), 5.));  // Probably a little too simplistic. :)
+
+    // Mix the gradients using the Y value of the unit direction ray.
+    vec3 sky = mix(col, col2, pow(max(rd.y + .15, 0.), .5));
+    sky *= vec3(.7, 1, 1.3)*vec3(1.2, 1, .9); // Adding some extra vibrancy.
+
+     // Subtle, fake sky curvature.
+    rd.z *= 1. + length(rd.xy)*.15;
+    rd = normalize(rd);
+
+    // A simple way to place some clouds on a distant plane above the terrain -- Based on something IQ uses.
+    const float SC = 1e5;
+    float t = (SC - .15)/(rd.y + .15); // Trace out to a distant XZ plane.
+    vec2 uv = (t*rd).xz; // UV coordinates.
+
+    // Mix the sky with the clouds, whilst fading out a little toward the horizon (The rd.y bit).
+	if(t>0.) sky =  mix(sky, vec3(2), smoothstep(.45, 1., fbm(1.5*uv/SC))*
+                        smoothstep(.45, .55, rd.y*.5 + .5)*.4);
+
+    // Return the sky color.
+    return sky;
 }
 
 vec3 Material(float id, vec3 p, float light, vec3 n) {
     switch(int(id)) {
         case SKY_ID:
-            return SkyColor();
+            return GetSky(SunlightDir);
 
         case FLOOR_ID:
             return vec3(.6) * light;
