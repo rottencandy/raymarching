@@ -16,6 +16,7 @@ out vec4 outColor;
 
 #define SKY_ID   0
 #define FLOOR_ID 1
+#define SPHERE_ID 2
 
 const vec3 SunlightDir = normalize(vec3(0.8, 1.5, 3.5));
 
@@ -138,7 +139,7 @@ vec2 GetDist(vec3 p) {
     int id = SKY_ID;
     if (sphere < plane) {
         d = sphere;
-        id = FLOOR_ID;
+        id = SPHERE_ID;
     } else {
         d = plane;
         id = FLOOR_ID;
@@ -265,6 +266,9 @@ vec3 Material(float id, vec3 p, float light, vec3 n) {
 
         case FLOOR_ID:
             return vec3(.6) * light;
+
+        case SPHERE_ID:
+            return vec3(.7, .2, .1) * light;
 
         default:
             return vec3(light);
