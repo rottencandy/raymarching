@@ -7,16 +7,17 @@ import * as baseScene from './base-scene';
 import * as backroomScene from './backroom-scene';
 import * as spheresScene from './spheres-scene';
 import * as indoorScene from './raymarch-scene';
+import * as reflectScene from './reflection-scene';
 
 createDropdown('Resolution: ', ['426x240', '640x360', '854x480', '1280x720', '1920x1080'], (val) => {
     const [width, height] = val.split('x').map(v => Number(v));
     CTX.changeSize_(width, height);
 })
 
-let activeScene = backroomScene;
+let activeScene = baseScene;
 activeScene.reset();
 
-createDropdown('Scene: ', ['Base', 'Spheres', 'Backrooms', 'Indoor'], (val) => {
+createDropdown('Scene: ', ['Base', 'Spheres', 'Backrooms', 'Reflect', 'Indoor'], (val) => {
     switch(val) {
         case 'Base':
             activeScene = baseScene;
@@ -29,6 +30,9 @@ createDropdown('Scene: ', ['Base', 'Spheres', 'Backrooms', 'Indoor'], (val) => {
             break;
         case 'Indoor':
             activeScene = indoorScene;
+            break;
+        case 'Desert':
+            activeScene = reflectScene;
             break;
     }
     activeScene.reset();
