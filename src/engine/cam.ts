@@ -6,6 +6,7 @@ type CamState = {
      * Move camera along XYZ
      */
     move_: (x: number, y: number, z: number) => CamState;
+    fly_: (x: number, y: number, z: number) => CamState;
     /**
      * Rotate camera (radians)
      */
@@ -61,8 +62,24 @@ const Camera = (fov: number, zNear: number, zFar: number, aspect: number): CamSt
                 vec3.scale(t_move, front, z);
                 // reset y dir, so we always move paralell to the ground
                 // regardless of face direction
-                // TODO: turn this into a configurable option
                 t_move[1] = 0;
+                vec3.add(pos, pos, t_move);
+            }
+            if (y) {
+                vec3.scale(t_move, up, y);
+                vec3.add(pos, pos, t_move);
+            }
+            if (x) {
+                vec3.cross(t_side, up, front);
+                vec3.normalize(t_side, t_side);
+                vec3.scale(t_move, t_side, x);
+                vec3.add(pos, pos, t_move);
+            }
+            return thisObj;
+        },
+        fly_(x, y, z) {
+            if (z) {
+                vec3.scale(t_move, front, z);
                 vec3.add(pos, pos, t_move);
             }
             if (y) {
