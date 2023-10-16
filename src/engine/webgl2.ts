@@ -187,8 +187,8 @@ const createTextureFns = (gl: WebGL2RenderingContext) => (target = GL_TEXTURE_2D
         },
         setUnit_(loc: WebGLUniformLocation, unit: number) {
             gl.uniform1i(loc, unit);
-            thisObj.bind_();
             gl.activeTexture(GL_TEXTURE0 + unit);
+            thisObj.bind_();
             return thisObj;
         }
     };
