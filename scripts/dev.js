@@ -1,9 +1,7 @@
-import { serve } from 'esbuild';
+import { context } from 'esbuild';
 import { glsl } from 'esbuild-plugin-glsl';
 
-serve({
-    servedir: 'app',
-}, {
+const ctx = await context({
     entryPoints: ['src/main.ts', 'src/app.css'],
     bundle: true,
     sourcemap: 'inline',
@@ -14,6 +12,12 @@ serve({
     loader: { '.png': 'dataurl' },
     // loader: { '.png': 'dataurl', '.frag': 'text', '.vert': 'text' },
     plugins: [glsl()]
-})
-    .then(server => console.log(`Serving at: http://localhost:${server.port}`))
-    .catch(() => process.exit(1));
+});
+await ctx.watch();
+const { host, port } = await ctx.serve({ servedir: 'app' });
+console.log(`Serving: http://${host}:${port}`);
+
+process.on('SIGINT', async () => {
+    await ctx.dispose();
+    process.exit();
+});
