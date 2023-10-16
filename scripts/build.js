@@ -11,5 +11,5 @@ build({
     outdir: 'app',
     mangleProps: /_$/,
     loader: { '.png': 'dataurl' },
-    plugins: [glsl()]
+    plugins: [glsl({ minify: true })],
 }).catch(() => process.exit(1))
