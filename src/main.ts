@@ -18,17 +18,27 @@ createDropdown('Resolution: ', ['426x240', '640x360', '854x480', '1280x720', '19
 let activeScene = baseScene;
 activeScene.reset();
 
-const scenes = {
-    Base: baseScene,
-    Spheres: spheresScene,
-    Backrooms: backroomScene,
-    Indoor: indoorScene,
-    Reflect: reflectScene,
-    Reflect2: reflect2Scene,
-};
-
-createDropdown('Scene: ', Object.keys(scenes), (val) => {
-    activeScene = scenes[val];
+createDropdown('Scene: ', ['Base', 'Spheres', 'Backrooms', 'Reflect', 'Reflect2', 'Indoor'], (val) => {
+    switch(val) {
+        case 'Base':
+            activeScene = baseScene;
+            break;
+        case 'Spheres':
+            activeScene = spheresScene;
+            break;
+        case 'Backrooms':
+            activeScene = backroomScene;
+            break;
+        case 'Indoor':
+            activeScene = indoorScene;
+            break;
+        case 'Reflect':
+            activeScene = reflectScene;
+            break;
+        case 'Reflect2':
+            activeScene = reflect2Scene;
+            break;
+    }
     activeScene.reset();
 })
 
@@ -39,7 +49,7 @@ const planeCoords = F32([
      1,  1,
 ]);
 
-const { draw_ } = CTX.createMesh_(
+const { vao_, draw_ } = CTX.createMesh_(
     [ planeCoords, [0, 1, 2, 0, 2, 3] ],
     [[0, 2]],
 );
@@ -51,6 +61,7 @@ startLoop(
     },
     (dt) => {
         CTX.clear_();
+        vao_.bind_();
         activeScene.render(dt);
         draw_();
     }
